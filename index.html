@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Music Theory App</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Tone.js for audio synthesis -->
+  <script src="https://unpkg.com/tone@latest/build/Tone.js"></script>
+  <!-- VexFlow for music notation -->
+  <script src="https://unpkg.com/vexflow@4.1.2/build/cjs/vexflow.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Music Theory App</h1>
+  </header>
+  <main>
+    <section class="audio-controls">
+      <button id="start-audio">Start Audio</button>
+    </section>
+    <section class="piano-section">
+      <h2>Interactive Piano</h2>
+      <div id="piano" class="piano"></div>
+    </section>
+    <section class="notation-section">
+      <h2>Notation Example</h2>
+      <div id="staff" class="staff"></div>
+    </section>
+    <section class="chat-section">
+      <h2>Chat (AI Integration Placeholder)</h2>
+      <div id="chat-container" class="chat-container">
+        <div id="chat-messages" class="chat-messages"></div>
+        <div class="chat-input">
+          <input id="chat-input" type="text" placeholder="Type a question..." />
+          <button id="chat-send">Send</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
