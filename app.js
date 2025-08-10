@@ -1,13 +1,79 @@
-// app.js: main JavaScript for the Music Theory App
+/*
+ * Music Theory App - React implementation with Material‑UI
+ *
+ * This script defines a simple React application that introduces a modular
+ * lesson structure. Users can switch between different lesson types (e.g.
+ * Piano basics, Scales, Chords) using Material‑UI tabs. The Piano lesson
+ * includes an interactive keyboard and a notation example rendered with
+ * VexFlow. The other lessons currently display placeholder content and can
+ * be expanded in the future. Tone.js handles audio synthesis for the
+ * interactive piano. Material‑UI is loaded via UMD builds and is available
+ * through the global `MaterialUI` object. Icons are available via
+ * `MaterialUIIcons` if needed.
+ */
 
-// Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', () => {
-  // Audio initialization
-  const startButton = document.getElementById('start-audio');
-  let synth;
-  let audioStarted = false;
+// Destructure commonly used components from the global MaterialUI object.
+const {
+  Button,
+  AppBar,
+  Tabs,
+  Tab,
+  Box,
+  Typography
+} = MaterialUI;
 
-  // Create keys for one octave from C4 to B4
+/**
+ * Renders a musical notation example using VexFlow. This component
+ * executes its drawing logic once on mount via the useEffect hook.
+ */
+function NotationExample() {
+  React.useEffect(() => {
+    // Find or create the container div for the notation
+    const containerId = 'notation-container';
+    let container = document.getElementById(containerId);
+    if (!container) {
+      container = document.createElement('div');
+      container.id = containerId;
+      document.body.appendChild(container);
+    }
+    // Clear any previous notation
+    container.innerHTML = '';
+    // Draw a simple C major scale on a treble stave
+    const VF = Vex.Flow;
+    const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+    renderer.resize(500, 200);
+    const context = renderer.getContext();
+    const stave = new VF.Stave(10, 40, 480);
+    stave.addClef('treble');
+    stave.setContext(context).draw();
+    const notes = [
+      new VF.StaveNote({ keys: ['c/4'], duration: 'q' }),
+      new VF.StaveNote({ keys: ['d/4'], duration: 'q' }),
+      new VF.StaveNote({ keys: ['e/4'], duration: 'q' }),
+      new VF.StaveNote({ keys: ['f/4'], duration: 'q' }),
+      new VF.StaveNote({ keys: ['g/4'], duration: 'q' }),
+      new VF.StaveNote({ keys: ['a/4'], duration: 'q' }),
+      new VF.StaveNote({ keys: ['b/4'], duration: 'q' }),
+      new VF.StaveNote({ keys: ['c/5'], duration: 'q' }),
+    ];
+    const voice = new VF.Voice({ num_beats: 8, beat_value: 4 });
+    voice.addTickables(notes);
+    new VF.Formatter().joinVoices([voice]).format([voice], 450);
+    voice.draw(context, stave);
+  }, []);
+  return <div id="notation-container"></div>;
+}
+
+/**
+ * Renders an interactive piano keyboard using Tone.js. It also includes
+ * a button to start the audio context. Piano keys are styled inline,
+ * based on whether they are white or black keys. Clicking a key
+ * triggers a short note via Tone.js.
+ */
+function PianoLesson() {
+  const [synth, setSynth] = React.useState(null);
+  const [audioStarted, setAudioStarted] = React.useState(false);
+  // Define one octave of keys (C4 to B4)
   const keys = [
     { note: 'C4', isBlack: false },
     { note: 'C#4', isBlack: true },
@@ -22,91 +88,156 @@ document.addEventListener('DOMContentLoaded', () => {
     { note: 'A#4', isBlack: true },
     { note: 'B4', isBlack: false },
   ];
-
-  const pianoContainer = document.getElementById('piano');
-
-  // Render piano keys
-  keys.forEach(key => {
-    const div = document.createElement('div');
-    div.classList.add('piano-key');
-    if (key.isBlack) div.classList.add('black');
-    div.textContent = key.note;
-    div.addEventListener('click', () => {
-      if (!audioStarted) return;
-      if (synth) {
-        synth.triggerAttackRelease(key.note, '8n');
-      }
-    });
-    pianoContainer.appendChild(div);
-  });
-
-  // Start audio context on button click
-  startButton.addEventListener('click', async () => {
+  // Initialise the audio context and synth on first click
+  const startAudio = async () => {
     if (!audioStarted) {
       await Tone.start();
-      synth = new Tone.Synth().toDestination();
-      audioStarted = true;
-      startButton.textContent = 'Audio Started';
-      startButton.disabled = true;
+      const s = new Tone.Synth().toDestination();
+      setSynth(s);
+      setAudioStarted(true);
     }
-  });
+  };
+  // Play the note when a key is clicked
+  const handleKeyClick = (note) => {
+    if (synth) {
+      synth.triggerAttackRelease(note, '8n');
+    }
+  };
+  // Styles for the piano keys
+  const whiteKeyStyle = {
+    position: 'relative',
+    width: '40px',
+    height: '150px',
+    margin: '1px',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+    backgroundColor: '#ffffff',
+    boxShadow: '0 2px 2px rgba(0,0,0,0.1)',
+    cursor: 'pointer',
+    userSelect: 'none',
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    fontSize: '0.7rem',
+    color: '#333333'
+  };
+  const blackKeyStyle = {
+    ...whiteKeyStyle,
+    width: '30px',
+    height: '100px',
+    marginLeft: '-15px',
+    marginRight: '-15px',
+    zIndex: 1,
+    backgroundColor: '#333333',
+    color: '#eeeeee'
+  };
+  return (
+    <Box p={2}>
+      <Typography variant="h5" component="h2" gutterBottom>
+        Piano Basics
+      </Typography>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={startAudio}
+        disabled={audioStarted}
+      >
+        {audioStarted ? 'Audio Started' : 'Start Audio'}
+      </Button>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+          marginTop: '1rem'
+        }}
+      >
+        {keys.map((key) => (
+          <div
+            key={key.note}
+            onClick={() => handleKeyClick(key.note)}
+            style={key.isBlack ? blackKeyStyle : whiteKeyStyle}
+          >
+            {key.note}
+          </div>
+        ))}
+      </div>
+      <Box mt={4}>
+        <Typography variant="h6" component="h3" gutterBottom>
+          Notation Example
+        </Typography>
+        <NotationExample />
+      </Box>
+    </Box>
+  );
+}
 
-  // Draw notation using VexFlow
-  function renderNotation() {
-    const staffDiv = document.getElementById('staff');
-    // Clear any existing notation
-    staffDiv.innerHTML = '';
-    const VF = Vex.Flow;
-    // Create an SVG renderer and attach it to the DIV
-    const renderer = new VF.Renderer(staffDiv, VF.Renderer.Backends.SVG);
-    renderer.resize(500, 200);
-    const context = renderer.getContext();
-    // Create a stave at x=10, y=40 of width 480 on the staff
-    const stave = new VF.Stave(10, 40, 480);
-    stave.addClef('treble');
-    stave.setContext(context).draw();
-    // Create notes for a C major scale
-    const notes = [
-      new VF.StaveNote({ keys: ['c/4'], duration: 'q' }),
-      new VF.StaveNote({ keys: ['d/4'], duration: 'q' }),
-      new VF.StaveNote({ keys: ['e/4'], duration: 'q' }),
-      new VF.StaveNote({ keys: ['f/4'], duration: 'q' }),
-      new VF.StaveNote({ keys: ['g/4'], duration: 'q' }),
-      new VF.StaveNote({ keys: ['a/4'], duration: 'q' }),
-      new VF.StaveNote({ keys: ['b/4'], duration: 'q' }),
-      new VF.StaveNote({ keys: ['c/5'], duration: 'q' }),
-    ];
-    // Create a voice in 4/4 and add notes
-    const voice = new VF.Voice({ num_beats: 8, beat_value: 4 });
-    voice.addTickables(notes);
-    // Format and justify the notes to 450 pixels
-    const formatter = new VF.Formatter().joinVoices([voice]).format([voice], 450);
-    // Render voice
-    voice.draw(context, stave);
-  }
-  renderNotation();
+/**
+ * Placeholder lesson for scales. Currently displays a heading and
+ * description. You can expand this component to include interactive
+ * scale visualisations and exercises.
+ */
+function ScalesLesson() {
+  return (
+    <Box p={2}>
+      <Typography variant="h5" component="h2" gutterBottom>
+        Scales
+      </Typography>
+      <Typography variant="body1">
+        This lesson will cover major and minor scales, modes, and other
+        scale types. Interactive exercises will be added here in the
+        future.
+      </Typography>
+    </Box>
+  );
+}
 
-  // Simple chat placeholder
-  const chatInput = document.getElementById('chat-input');
-  const chatSend = document.getElementById('chat-send');
-  const chatMessages = document.getElementById('chat-messages');
+/**
+ * Placeholder lesson for chords. Currently displays a heading and
+ * description. You can expand this component to include chord
+ * construction tools and playback.
+ */
+function ChordsLesson() {
+  return (
+    <Box p={2}>
+      <Typography variant="h5" component="h2" gutterBottom>
+        Chords
+      </Typography>
+      <Typography variant="body1">
+        This lesson will explore triads, seventh chords, and extended
+        harmonies. Interactive chord builders will be added here in
+        the future.
+      </Typography>
+    </Box>
+  );
+}
 
-  function appendMessage(sender, text) {
-    const msgDiv = document.createElement('div');
-    msgDiv.classList.add('message');
-    msgDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
-    chatMessages.appendChild(msgDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-  }
+/**
+ * Main application component. Renders a Material‑UI AppBar with tabs
+ * allowing the user to switch between lessons. Depending on the
+ * selected tab, the corresponding lesson component is displayed.
+ */
+function App() {
+  const [value, setValue] = React.useState(0);
+  const handleChange = (event, newValue) => {
+    setValue(newValue);
+  };
+  return (
+    <div>
+      <AppBar position="static">
+        <Tabs value={value} onChange={handleChange} aria-label="lesson tabs">
+          <Tab label="Piano" />
+          <Tab label="Scales" />
+          <Tab label="Chords" />
+        </Tabs>
+      </AppBar>
+      {/* Render the selected lesson */}
+      {value === 0 && <PianoLesson />}
+      {value === 1 && <ScalesLesson />}
+      {value === 2 && <ChordsLesson />}
+    </div>
+  );
+}
 
-  chatSend.addEventListener('click', () => {
-    const text = chatInput.value.trim();
-    if (!text) return;
-    appendMessage('You', text);
-    chatInput.value = '';
-    // Placeholder for AI response
-    setTimeout(() => {
-      appendMessage('AI', 'This is a placeholder response.');
-    }, 500);
-  });
-});
+// Render the application into the root container
+ReactDOM.render(<App />, document.getElementById('root'));
